@@ -2,15 +2,12 @@
 
 """ Write a python function which gets a dict of location, list of cities, and returns the name of the city that appears the most times """
 
-def solution(word_dict):
-    words = []
-    for k, v in word_dict.items():
-        for word in v:
-            words.append(word)
 
+def solution(word_dict):
     count = {}
-    for word in words:
-        count[word] = count.get(word, 0) + 1
+    for _, v in word_dict.items():
+        for word in v:
+            count[word] = count.get(word, 0) + 1
 
     max_word = None
     max_count = 0
@@ -90,4 +87,4 @@ word_dict = {
     "list1": [1, 2, 2, 3],
     "list2": [3, 3, 1],
 }
-assert solution(word_dict) == 3 # Integers are allowed
+assert solution(word_dict) == 3  # Integers are allowed

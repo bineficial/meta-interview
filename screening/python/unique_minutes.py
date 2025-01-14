@@ -7,21 +7,20 @@ minutes of the movie.
 
 
 def solution(times):
-    if len(times) == 0:
-        return 0
-
     times = sorted(times)
-    total = times[0][1] - times[0][0]
 
-    for i in range(1, len(times)):
-        cur = times[i]
-        prev = times[i-1]
+    prev = (0, 0)
+    total = 0
 
-        if cur[0] >= prev[1]:
-            total += cur[1] - cur[0]
-        else:
-            if cur[1] > prev[1]:
-                total += cur[1] - prev[1]
+    for time in times:
+        s, e = time
+
+        if s >= prev[1]:
+            total += e - s
+            prev = time
+        elif s < prev[1] and e > prev[1]:
+            total += e - prev[1]
+            prev = time
 
     return total
 
@@ -32,5 +31,5 @@ assert solution([(0, 5)]) == 5
 assert solution([(0, 0), (0, 0)]) == 0
 assert solution([(0, 0), (1, 2)]) == 1
 assert solution([(0, 10), (15, 25), (12, 20), (30, 48)]) == 41
-assert solution([(0, 9), (0, 10), (1, 9)]) == 10
+assert solution([(0, 9), (0, 10), (1, 9), (1, 10), (2, 12)]) == 12
 assert solution([(0, 15), (10, 25)]) == 25

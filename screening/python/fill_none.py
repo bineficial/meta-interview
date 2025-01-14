@@ -20,11 +20,22 @@ def solution(nums):
     return res
 
 
+def solution(nums):
+    ans = []
+    update_val = None
+    for val in nums:
+        if val != None:
+            update_val = val
+
+        ans.append(update_val)
+
+    return ans
+
+
 assert solution([]) == []
 assert solution([None, None, None, None]) == [None, None, None, None]
-assert solution([1, None, 2, 3, None, None, 5, None]) == [
-    1, 1, 2, 3, 3, 3, 5, 5]
-assert solution([12, 34, None, 1, 2, 3, 22, None, 23, 24, 25, None, 25, 17, 29, None, None, 1]) == [
-    12, 34, 34, 1, 2, 3, 22, 22, 23, 24, 25, 25, 25, 17, 29, 29, 29, 1]
-assert solution([None, 1, 2, 3, None, 4, None, None]) == [
-    None, 1, 2, 3, 3, 4, 4, 4]
+assert solution([1, None, 2, 3, None, None, 5, None]) == [1, 1, 2, 3, 3, 3, 5, 5]
+assert solution(
+    [12, 34, None, 1, 2, 3, 22, None, 23, 24, 25, None, 25, 17, 29, None, None, 1]
+) == [12, 34, 34, 1, 2, 3, 22, 22, 23, 24, 25, 25, 25, 17, 29, 29, 29, 1]
+assert solution([None, 1, 2, 3, None, 4, None, None]) == [None, 1, 2, 3, 3, 4, 4, 4]

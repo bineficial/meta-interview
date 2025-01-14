@@ -12,12 +12,15 @@ sentence then you have to print that word too).
 
 def solution(str1, str2):
     count = {}
-    for w in str1.split():
-        count[w] = count.get(w, 0) + 1
-    for w in str2.split():
+    for w in f"{str1} {str2}".split():
         count[w] = count.get(w, 0) + 1
 
-    return [w for w in count if count[w] == 1]
+    ans = []
+    for k, v in count.items():
+        if v == 1:
+            ans.append(k)
+
+    return ans
 
 
 assert solution("", "") == []
@@ -25,14 +28,14 @@ assert solution("First", "Second") == ["First", "Second"]
 assert solution("First", "First") == []
 assert solution("First", "") == ["First"]
 assert solution("", "Second") == ["Second"]
-assert solution(
-    "Firstly this is the first string",
-    "Next is the second string"
-) == ['Firstly', 'this', 'first', 'Next', 'second']
-assert solution(
-    "apple banana mango",
-    "banana fruits mango"
-) == ['apple', 'fruits']
+assert solution("Firstly this is the first string", "Next is the second string") == [
+    "Firstly",
+    "this",
+    "first",
+    "Next",
+    "second",
+]
+assert solution("apple banana mango", "banana fruits mango") == ["apple", "fruits"]
 
 
 def solution2(sent1, sent2):
@@ -41,11 +44,12 @@ def solution2(sent1, sent2):
 
     return (words1 - words2).union(words2 - words1)
 
-assert solution2(
-    "Firstly this is the first string",
-    "Next is the second string"
-) == {'Firstly', 'this', 'first', 'Next', 'second'}
-assert solution2(
-    "apple banana mango",
-    "banana fruits mango"
-) == {'apple', 'fruits'}
+
+assert solution2("Firstly this is the first string", "Next is the second string") == {
+    "Firstly",
+    "this",
+    "first",
+    "Next",
+    "second",
+}
+assert solution2("apple banana mango", "banana fruits mango") == {"apple", "fruits"}

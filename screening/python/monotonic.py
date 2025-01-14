@@ -6,22 +6,23 @@ determine whether the array is monotonic
 
 
 def solution(nums):
-    if len(nums) == 0:
-        return False
+    if len(nums) <= 1:
+        return True
 
     is_inc = True
     is_dec = True
 
-    for i, n in enumerate(nums[1:]):
-        if nums[i] > n:
+    for i in range(1, len(nums)):
+        if nums[i] < nums[i - 1]:
             is_inc = False
-        if nums[i] < n:
+
+        if nums[i] > nums[i - 1]:
             is_dec = False
 
     return is_inc or is_dec
 
 
-assert solution([]) == False
+assert solution([]) == True
 assert solution([1]) == True
 assert solution([1, 2]) == True
 assert solution([1, 2, 1]) == False

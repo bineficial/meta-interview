@@ -5,15 +5,18 @@ Given an ip address as an input string, validate it and return True/False
 
 def solution(ip):
     parts = ip.split(".")
+
     if len(parts) != 4:
         return False
-    
-    for p in parts:
-        if not p.isdigit():
+
+    for part in parts:
+        if not part.isdigit():
             return False
 
-        i = int(p)
-        if i < 0 or i > 255:
+        if int(part) < 0 or int(part) > 255:
+            return False
+
+        if part != "0" and part[0] == "0":
             return False
 
     return True

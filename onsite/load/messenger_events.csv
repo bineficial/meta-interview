@@ -1,0 +1,7 @@
+date,user_id,platform,event
+2020-01-01,1,android,app_open
+2020-01-01,1,android,msg_send
+2020-01-01,2,ios,app_open
+2020-01-01,3,ios,app_open
+2020-01-01,3,ios,msg_send
+2020-01-01,3,ios,msg_send

@@ -1,0 +1,55 @@
+-- %% MD | unnamed
+messenger_events (
+    date
+    time
+    user_id
+    platform (ios, android)
+    event (app_open msg_send)
+)
+
+dim_messenger_user (
+    date
+    user_id
+    num_of_msg_sends_in_1d
+    num_of_msg_sends_in_1d_android
+    num_of_msg_sends_in_1d_ios
+    num_of_app_opens_lifetime
+    first_action_date
+    is_active_today
+)
+
+Produce dim_messenger_user using messenger_events.
+-- %% SQL_RAW | unnamed
+create or replace table messenger_events as
+from 'onsite/load/messenger_events.csv';
+
+with base as (
+    select
+        date,
+        user_id,
+        sum(case when event='msg_send' then 1 else 0 end) as num_of_msg_sends_in_1d,
+        sum(case when event='msg_send' and platform='android' then 1 else 0 end) as num_of_msg_sends_in_1d_android,
+        sum(case when event='msg_send' and platform='ios' then 1 else 0 end) as num_of_msg_sends_in_1d_ios,
+        min(date) as first_action_date
+    from messenger_events
+    group by date, user_id
+)
+, app_open as (
+    select user_id, sum(case when event='app_open' then 1 else 0 end) as num_of_app_opens_lifetime
+    from messenger_events
+    group by user_id
+)
+select 
+    strftime(base.date, '%Y-%m-%d') as date,
+    base.user_id,
+    num_of_msg_sends_in_1d,
+    num_of_msg_sends_in_1d_android,
+    num_of_msg_sends_in_1d_ios,
+    num_of_app_opens_lifetime,
+    strftime(first_action_date, '%Y-%m-%d') as first_action_date,
+    case when base.date = '2020-01-01' then 'Y' else 'N' end as is_active_today
+from base
+join app_open
+    on app_open.user_id = base.user_id
+-- %% SQL_RAW | unnamed
+

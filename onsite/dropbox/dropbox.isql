@@ -1,0 +1,93 @@
+-- %% MD | unnamed
+Q: Design a data model for product analysis. The data model should handle these cases: upload files, share files to user, multiple users can own multiple files.
+
+fact_activity (
+    activity_id
+    activity_type (upload, share)
+    file_id
+    location_id
+    date_id
+    user_id
+    shared_user_id
+    permission_type (read, write)
+)
+-- %% SQL_RAW | unnamed
+CREATE OR REPLACE TABLE fact_activity AS
+    FROM 'onsite/dropbox/fact_activity.csv';
+CREATE OR REPLACE TABLE dim_user AS
+    FROM 'onsite/dropbox/dim_user.csv';
+CREATE OR REPLACE TABLE dim_file AS
+    FROM 'onsite/dropbox/dim_file.csv';
+CREATE OR REPLACE TABLE dim_date AS
+    FROM 'onsite/dropbox/dim_date.csv';
+-- %% SQL_RAW | unnamed
+-- Q1: How would you calculate the number of uploads by country (by user's country)?
+
+select dim_user.country, count(*)
+from fact_activity
+join dim_user 
+    on dim_user.user_id = fact_activity.user_id
+where activity_type = 'upload'
+group by dim_user.country
+-- %% SQL_RAW | unnamed
+-- Q2: How many users are exclusively uploading photos (i.e. photo_type = photo)?
+
+with user_upload_count as (
+    select
+        user_id,
+        sum(case when file_type = 'photo' then 1 else 0 end) as photo_upload_count,
+        count(*) as upload_count
+    from fact_activity
+    join dim_file
+        on dim_file.file_id = fact_activity.file_id
+    where activity_type = 'upload'
+    group by user_id
+)
+select count(user_id)
+from user_upload_count
+where upload_count - photo_upload_count = 0
+-- %% SQL_RAW | unnamed
+-- Q3: Given multiple users can own files, how many files have had more than one owner, over a specified time period (ie, between date1 and date2)?
+-- ASSUMPTION: activity type is only upload or share, there is no revoke share event
+
+select count(file_id)
+from (
+    select file_id, count(distinct coalesce(shared_user_id, user_id)) as owner_count
+    from fact_activity
+    join dim_date
+        on dim_date.date_id = fact_activity.date_id
+    where activity_type in ('upload', 'share') and date between '2020-01-01' and '2020-01-05'
+    group by file_id
+)
+where owner_count > 1
+-- %% SQL_RAW | unnamed
+-- Q4: Which type of file is shared most frequently?
+
+select file_type
+from fact_activity
+join dim_file
+    on dim_file.file_id = fact_activity.file_id
+where activity_type = 'share'
+group by file_type
+order by count(*) desc
+limit 1
+-- %% SQL_RAW | unnamed
+-- Q5: How many files are shared across countries (user's country level)?
+
+select count(file_id)
+from fact_activity
+join dim_user
+    on dim_user.user_id = fact_activity.user_id
+join dim_user as dim_shared_user
+    on dim_shared_user.user_id = fact_activity.shared_user_id
+where dim_user.country != dim_shared_user.country
+-- %% SQL_RAW | unnamed
+-- Q6: Of those who received file shared to them, how many have reshared? Lets get this on a per file_id level.
+
+select count(*)
+from fact_activity a
+join fact_activity b
+    on b.user_id = a.shared_user_id
+    and b.file_id = a.file_id
+where a.activity_type = 'share' and b.activity_type = 'share'
+

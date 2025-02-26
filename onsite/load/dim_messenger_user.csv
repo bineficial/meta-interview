@@ -1,0 +1,4 @@
+date,user_id,num_of_msg_sends_in_1d,num_of_msg_sends_in_1d_android,num_of_msg_sends_in_1d_ios,num_of_app_opens_lifetime,first_action_date,is_active_today
+2020-01-01,1,1,1,0,1,2020-01-01,Y
+2020-01-01,2,0,0,0,1,2020-01-01,Y
+2020-01-01,3,2,0,2,1,2020-01-01,Y

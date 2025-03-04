@@ -54,11 +54,15 @@ from base
 join app_open
     on app_open.user_id = base.user_id
 -- %% SQL_RAW | unnamed
+-- A new days worth of data has comes from messenger_events, write a sql query to load that new data into dim_messenger_user.
+-- Will this be insert only or insert and update? Assuming insert only
+
 create or replace table dim_messenger_user as
 from 'onsite/load/dim_messenger_user.csv';
 
 create or replace table messenger_events as
 from 'onsite/load/messenger_events_2.csv';
+
 
 with messenger_events_daily as (
     select
@@ -67,28 +71,26 @@ with messenger_events_daily as (
         sum(case when event='msg_send' then 1 else 0 end) as num_of_msg_sends_in_1d,
         sum(case when event='msg_send' and platform='android' then 1 else 0 end) as num_of_msg_sends_in_1d_android,
         sum(case when event='msg_send' and platform='ios' then 1 else 0 end) as num_of_msg_sends_in_1d_ios,
-        min(date) as first_action_date
+        sum(case when event='app_open' then 1 else 0 end) as num_of_app_opens_1d,
+        min(date) as first_action_date,
+        'Y' as is_active_today
     from messenger_events
     where date = '2020-01-02'
     group by date, user_id
 )
-, app_open as (
-    select user_id, sum(case when event='app_open' then 1 else 0 end) as num_of_app_opens_lifetime
-    from messenger_events
-    group by user_id
-)
 select 
-    coalesce(user.date, events.date) as date,
+    strftime(coalesce(user.date + interval '1 day', events.date), '%Y-%m-%d') as date,
     coalesce(user.user_id, events.user_id) as user_id,
-    coalesce(user.num_of_msg_sends_in_1d, events.num_of_msg_sends_in_1d) as num_of_msg_sends_in_1d,
-    coalesce(user.num_of_msg_sends_in_1d_android, events.num_of_msg_sends_in_1d_android) as num_of_msg_sends_in_1d_android,
-    coalesce(user.num_of_msg_sends_in_1d_ios, events.num_of_msg_sends_in_1d_ios) as num_of_msg_sends_in_1d_ios,
-    coalesce(user.first_action_date, events.first_action_date) as first_action_date,
-    coalesce(app_open.num_of_app_opens_lifetime, user.num_of_app_opens_lifetime) as num_of_app_opens_lifetime,
+    coalesce(events.num_of_msg_sends_in_1d, 0) as num_of_msg_sends_in_1d,
+    coalesce(events.num_of_msg_sends_in_1d_android, 0) as num_of_msg_sends_in_1d_android,
+    coalesce(events.num_of_msg_sends_in_1d_ios, 0) as num_of_msg_sends_in_1d_ios,
+    coalesce(num_of_app_opens_lifetime, 0) + coalesce(num_of_app_opens_1d, 0) as num_of_app_opens_lifetime,
+    strftime(coalesce(user.first_action_date, events.first_action_date), '%Y-%m-%d') as first_action_date,
+    coalesce(events.is_active_today, 'N') as is_active_today
 from dim_messenger_user as user
 full outer join messenger_events_daily as events
-    on events.date = user.date
+    on events.date = user.date + interval '1 day'
     and events.user_id = user.user_id
-full outer join app_open
-    on app_open.user_id = dim_messenger_user.user_id
+order by 1, 2
+-- %% SQL_RAW | unnamed
 

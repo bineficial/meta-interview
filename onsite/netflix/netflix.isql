@@ -1,0 +1,136 @@
+-- %% MD | unnamed
+User Engagement refers to how actively and meaningfull users iteract with Netflix. This includes watching content, exploring the plaform, and using features certain features.
+
+Daily Active Users (DAU): Number of unique users who access the platform daily.
+
+Monthly Active Users (MAU): Number of unique users who access the platform monthly.
+
+Session Duration: Average time users spend on the platform per session.
+
+Average Watch Time per User
+
+Completion Rate
+
+Bounce Rate: Percentage of users who leave the platform after viewing only one piece of content.
+
+Retention Rate: Percentage of users who return to the platform after their first visit.
+
+Click Through Rate on Recommendations
+
+Search Usage
+
+Content Diversity
+-- %% TEXT | unnamed
+Should streaming track more granular or more aggregate?
+
+fact_event (
+    event_id
+    user_id
+    content_id
+    device_id
+    date_id
+    start_time
+    end_time
+    duration_seconds
+)
+
+dim_user (
+    user_id
+    name
+    age
+    gender
+    country 
+)
+
+dim_content (
+    content_id
+    title
+    genre
+    content_tpe
+)
+
+dim_device (
+    device_id
+    device_type
+)
+
+date_id (
+    date_id
+    day
+    month
+    year
+    date
+)
+-- %% SQL_RAW | unnamed
+-- Update a daily aggregate table from a user activity fact table.
+-- How stale is the data?
+-- When does the query run?
+-- Do we only consider a new day worth of data?
+-- Will there be overlaps?
+-- One time load vs daily load?
+-- %% PYTHON | unnamed
+"""
+ratings = [
+    (movie_1: 3.5)
+    (movie_2: 4),
+    (movie_3: 4),
+    (movie_1: 4),
+    (movie_3: 2),
+]
+categories = {movie_1: "horror, movie_2: comedy, movie_3: action}
+
+return 3 highest movies ordered by avg rating in each movie category horror, comedy, action
+"""
+
+"""
+What if a movie has a category but no ratings?
+What if a movie has ratings but no category?
+"""
+
+"""
+movies -> [ratings]
+movies -> avg
+categories -> [{movie: avg}] sorted
+"""
+
+def solution(ratings, categories):
+    movie_ratings = {}
+    for movie, rating in ratings:
+        movie_ratings[movie] = movie_ratings.get(movie, []) + [rating]
+
+    movie_avg = {
+        k: sum(v) / len(v)
+        for k, v in movie_ratings.items()
+    }
+
+    categorized_movies = {}
+    for movie, category in categories.items():
+        if movie in movie_avg:
+            categorized_movies[category] = categorized_movies.get(category, []) + [(movie, movie_avg[movie])]
+    
+    top_3 = {
+        k: sorted(v, key=lambda x: x[1], reverse=True)[:3]
+        for k, v in categorized_movies.items()
+    }
+
+    print(top_3)
+
+
+ratings = [
+    ("movie_1", 3),
+    ("movie_2", 4),
+    ("movie_3", 5),
+    ("movie_4", 5),
+    ("movie_5", 3),
+    ("movie_6", 3),
+    ("movie_1", 1),
+]
+categories = {
+    "movie_1": "action",
+    "movie_2": "action",
+    "movie_3": "action",
+    "movie_4": "action",
+    "movie_5": "horor",
+    "movie_6": "comedy",
+}
+solution(ratings, categories)

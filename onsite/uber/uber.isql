@@ -1,0 +1,101 @@
+-- %% MD | unnamed
+Implementating a new car pool feature. Discuss value proposition.
+
+for passengers:
+* cost savings
+* covnenience
+* reduced wait times
+* social interactions
+
+for drivers:
+* increaed earnings
+* efficiency
+
+reduced traffic
+lower carbon
+affordable
+
+connect people
+-- %% TEXT | unnamed
+daily active user
+monthly active user
+ride volumne in similiar routes
+peak demand time
+rides that are solo
+driver availability
+-- %% TEXT | unnamed
+face_ride (
+    ride_id
+    driver_id
+    vehicle_id
+    start_location_id
+    end_location_id
+    start_time
+    end_time
+    distance
+    duration
+    fare_amount
+    is_carpool
+)
+
+dim_driver
+dim_rider
+dim_vehicle
+dim_location
+dim_time
+
+ride_rider_bridge (
+    ride_id
+    rider_id
+    fare_share
+)
+
+benefits of bridge table:
+easily map many to many relationship
+felxibility, bridge table can have more attributes like pickup order, fareshare
+scalability
+normalizaed
+
+downsides of bridge table:
+increased complexity
+performance overhead
+maintence challenges
+
+alternatives:
+store rider_ids in a array column
+make the fact table more granular where now its one row per rider per ride
+-- %% SQL_RAW | unnamed
+create or replace table fact_ride as
+from 'onsite/uber/fact_ride.csv';
+create or replace table dim_location as
+from 'onsite/uber/dim_location.csv';
+create or replace table ride_rider_bridge as
+from 'onsite/uber/ride_rider_bridge.csv';
+
+-- calculate the average wait time
+select sum(end_time - start_time) / count(*)
+from ride_fact
+-- %% SQL_RAW | unnamed
+-- how to calcualte how many drivers have spent more than total four hours with passengers
+
+select count(*)
+from (
+    select driver_id
+    from fact_ride
+    group by driver_id
+    having sum(end_time - start_time) / 3600 > 4 
+)
+-- %% SQL_RAW | unnamed
+-- number of riders using uber for airport service
+
+select count(distinct rider_id)
+from fact_ride
+join ride_rider_bridge
+    on ride_rider_bridge.ride_id = fact_ride.ride_id
+join dim_location as start_location
+    on start_location.location_id = fact_ride.start_location_id
+join dim_location as end_location
+    on end_location.location_id = fact_ride.end_location_id
+where start_location.type = 'airport' or end_location.type = 'airport'
+-- %% SQL_RAW | unnamed
+

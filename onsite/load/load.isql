@@ -93,4 +93,41 @@ full outer join messenger_events_daily as events
     and events.user_id = user.user_id
 order by 1, 2
 -- %% SQL_RAW | unnamed
+create or replace table user_activity as
+from 'onsite/load/user_activity.csv';
+
+select 
+    strftime(date, '%Y-%m-%d') as date,
+    sum(case when date = last_active_date and last_active_date - previous_active_date = 1 then 1 else 0 end) as active_users,
+    sum(case when date = first_active_date then 1 else 0 end) as new_users,
+    sum(case when date = last_active_date and last_active_date - previous_active_date > 1 then 1 else 0 end) as returning_users,
+    sum(case when date - last_active_date > 30 then 1 else 0 end) as churned_users
+from user_activity
+group by date
+-- %% SQL_RAW | unnamed
+create or replace table user_activity as
+from 'onsite/load/user_activity.csv';
+
+create or replace table user_event as
+from 'onsite/load/user_event.csv';
+
+select
+    strftime(coalesce(user_activity.date + interval '1 day', user_event.date), '%Y-%m-%d') as date,
+    coalesce(user_activity.user_id, user_event.user_id) as user_id,
+    strftime(coalesce(user_activity.first_active_date, user_event.date), '%Y-%m-%d')  as first_active_date,
+    strftime(coalesce(user_event.date, user_activity.last_active_date), '%Y-%m-%d')  as last_active_date,
+    -- strftime(user_activity.last_active_date, '%Y-%m-%d') as previous_active_date,
+    strftime(case when user_event.user_id is not null then user_activity.last_active_date else user_activity.previous_active_date end, '%Y-%m-%d') as previous_active_date
+from user_activity
+full outer join user_event
+    on user_event.user_id = user_activity.user_id
+    and user_event.date - interval '1 day' = user_activity.date
+order by 1,2
+-- %% SQL_RAW | unnamed
+select strftime(user_activity.date, '%Y-%m-%d')  as activity_user_id, strftime(user_event.date, '%Y-%m-%d') as user_event_user_id
+from user_activity
+full outer join user_event
+    on user_event.user_id = user_activity.user_id
+    and user_event.date = user_activity.date + interval '1 day'
+-- %% SQL_RAW | unnamed
 

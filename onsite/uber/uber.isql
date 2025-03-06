@@ -88,7 +88,7 @@ from (
 -- %% SQL_RAW | unnamed
 -- number of riders using uber for airport service
 
-select count(distinct rider_id)
+select count(rider_id)
 from fact_ride
 join ride_rider_bridge
     on ride_rider_bridge.ride_id = fact_ride.ride_id
@@ -98,4 +98,99 @@ join dim_location as end_location
     on end_location.location_id = fact_ride.end_location_id
 where start_location.type = 'airport' or end_location.type = 'airport'
 -- %% SQL_RAW | unnamed
+-- count riders who have ONLY used uber to go to and from airport
 
+select count(rider_id)
+from (
+    select
+        rider_id,
+        sum(case when start_location.type = 'airport' or end_location.type = 'airport' then 1 else 0 end) as airport_rides,
+        count(*) rides
+    from fact_ride
+    join ride_rider_bridge
+        on ride_rider_bridge.ride_id = fact_ride.ride_id
+    join dim_location as start_location
+        on start_location.location_id = fact_ride.start_location_id
+    join dim_location as end_location
+        on end_location.location_id = fact_ride.end_location_id
+    group by rider_id
+)
+where rides = airport_rides
+-- %% PYTHON | unnamed
+"""
+bookings = [(start, end, passengers)]
+determine if carpooling is possible within the capacity limit
+
+Can start and end time be the same?
+"""
+
+"""
+booking_events = [(start, +passengers), (end, -passengers)]
+sort booking_events
+loop booking_events keeping track of cur capacity
+and if cur capacity is over capacity then return false
+end return true
+"""
+
+def solution(bookings, capacity=4):
+    booking_events = []
+    for booking in bookings:
+        booking_events.append((booking[0], 0, booking[2]))
+        booking_events.append((booking[1], 1, -booking[2]))
+
+    booking_events = sorted(booking_events)
+
+    cur_capacity = 0
+    for e in booking_events:
+        cur_capacity += e[2]
+
+        if cur_capacity > capacity:
+            return False
+
+    return True
+
+# Test Case 1: Carpooling is possible (no overlapping trips)
+bookings1 = [(1, 4, 2), (5, 7, 3), (8, 10, 1)]
+assert solution(bookings1, capacity=4) == True
+
+# Test Case 2: Carpooling is not possible (overlapping trips exceed capacity)
+bookings2 = [(1, 4, 2), (2, 5, 3), (3, 6, 2)]
+assert solution(bookings2, capacity=4) == False
+
+# Test Case 3: Carpooling is possible (exact capacity)
+bookings3 = [(1, 4, 2), (2, 5, 2)]
+assert solution(bookings3, capacity=4) == True
+
+# Test Case 4: Carpooling is not possible (single trip exceeds capacity)
+bookings4 = [(1, 4, 5)]
+assert solution(bookings4, capacity=4) == False
+
+# Test Case 5: Carpooling is possible (all trips at the same time but within capacity)
+bookings5 = [(1, 4, 1), (1, 4, 1), (1, 4, 1), (1, 4, 1)]
+assert solution(bookings5, capacity=4) == True
+
+# Test Case 6: Carpooling is not possible (all trips at the same time and exceed capacity)
+bookings6 = [(1, 4, 2), (1, 4, 2), (1, 4, 2)]
+assert solution(bookings6, capacity=4) == False
+
+# Test Case 7: Carpooling is possible (no trips)
+bookings7 = []
+assert solution(bookings7, capacity=4) == True
+
+# Test Case 8: Carpooling is possible (trips with zero passengers)
+bookings8 = [(1, 4, 0), (2, 5, 0)]
+assert solution(bookings8, capacity=4) == True
+
+# Test Case 10: Carpooling is not possible (overlapping trips with varying passenger counts)
+bookings10 = [(1, 4, 2), (2, 5, 3), (3, 6, 1)]
+assert solution(bookings10, capacity=4) == False
+
+# Test Case 11: Carpooling is possible (trips with same start and end time)
+bookings11 = [(1, 1, 2), (1, 1, 2)]
+assert solution(bookings11, capacity=4) == True
+
+# Test Case 12: Carpooling is not possible (trips with same start and end time but exceed capacity)
+bookings12 = [(1, 1, 3), (1, 1, 2)]
+assert solution(bookings12, capacity=4) == False
+
+print("all test cases passed!")

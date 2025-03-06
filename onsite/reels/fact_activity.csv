@@ -1,0 +1,5 @@
+post_id,date_id,activity_type
+1,1,post
+1,1,like
+2,1,post
+2,2,like

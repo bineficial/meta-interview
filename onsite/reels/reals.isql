@@ -1,0 +1,25 @@
+-- %% MD | unnamed
+
+-- %% SQL_RAW | unnamed
+-- identify posts with zero likes/reacts on the day they were posted
+create or replace table fact_activity as
+from 'onsite/reels/fact_activity.csv';
+
+create or replace table dim_date as
+from 'onsite/reels/dim_date.csv';
+
+select post_id
+from (
+  select
+        post_id,
+        date,
+        max(case when activity_type = 'post' then 'Y' else 'N' end) as posted_today,
+        sum(case when activity_type = 'like' then 1 else 0 end) as likes_count
+    from fact_activity
+    join dim_date
+        on dim_date.date_id = fact_activity.date_id
+    group by post_id, date   
+)
+where posted_today = 'Y' and likes_count = 0
+-- %% SQL_RAW | unnamed
+

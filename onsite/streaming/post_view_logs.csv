@@ -1,0 +1,9 @@
+session_id,post_id,ts,event_name,perc_in_view
+m1,1000,600,post_view_start,
+m1,1000,602,post_view_end,0.85
+m1,1000,650,post_view_start,
+m1,1000,654,post_view_end,0.9
+m1,2000,700,post_view_start,
+m1,2000,707,post_view_end,0.3
+m1,2000,710,post_view_start,
+m1,2000,716,post_view_end,0.9

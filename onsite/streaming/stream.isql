@@ -1,0 +1,222 @@
+-- %% MD | unnamed
+post_view_logs
+
+session_id, post_id, ts, event_name, perc_in_view
+m1, 1000, 600, post_view_start, NULL
+m1, 1000, 602, post_view_end, 0.85
+m1, 1000, 650, post_view_start, NULL
+m1, 1000, 654, post_view_end, 0.9
+m1, 2000, 700, post_view_start, NULL
+m1, 2000, 707, post_view_end, 0.3
+m1, 2000, 710, post_view_start, NULL
+m1, 2000, 716, post_view_end, 0.9
+
+output table structure
+
+session_id, post_id, has_meaningful_impression
+m1, 1000, True/False
+m1, 2000, True/False
+
+time spent >= 5 secs and perc_in_view >= 80%
+
+intermediate table structure
+session_id, post_id, start_ts, end_ts, perc_in_view
+m1, 1000, 600, 602, 0.85
+m1, 1000, 650, 654, 0.9
+m1, 2000, 700, 707, 0.3
+m1, 2000, 710, 714, 0.9
+-- %% SQL_RAW | unnamed
+create or replace table post_view_logs as
+from 'onsite/streaming/post_view_logs.csv';
+
+with interm as (
+    select
+        session_id,
+        post_id,
+        ts as start_ts,
+        lead(ts) over(partition by session_id, post_id order by ts) as end_ts,
+        lead(perc_in_view) over(partition by session_id, post_id order by ts) as perc_in_view,
+        event_name
+    from post_view_logs   
+)
+, agg as (
+    select
+        session_id,
+        post_id,
+        sum(end_ts - start_ts) as time_spent,
+        max(perc_in_view) as perc_in_view
+    from interm
+    where event_name = 'post_view_start'
+    group by session_id, post_id  
+)
+select
+    session_id,
+    post_id,
+    case when time_spent >= 5 and perc_in_view >= 0.8 then True else False end as has_meaningful_impression
+from agg 
+
+
+-- %% PYTHON | unnamed
+"""
+Given an input stream of data: [session_id, post_id, ts, event_name, perc_in_view]
+Store this data in a data structure. Then print out if the session_id, view, true/false based on if its an active engagement.
+active engagement means TIME SPENT >= 5 and PERC IN VIEW >= 0.8
+
+
+Will the records be in order?
+Will there be a 'start' and 'end' pair?
+
+data = session_id -> view_id: [(ts, event, perc_view)]
+sort view_id value
+loop calc time, max perc view
+"""
+data = {}
+
+def store(record):
+    if record[1] == "session_end":
+        return
+    
+    session_id = record[0]
+    view_id = record[1]
+    ts = record[2]
+    event_name = record[3]
+    perc_in_view = record[4]
+
+    if session_id not in data:
+        data[session_id] = {}
+    if view_id not in data[session_id]:
+        data[session_id][view_id] = []
+    
+    data[session_id][view_id].append(
+        (ts, event_name, perc_in_view)
+    )
+
+def show(data):
+    for session_id, view_events in data.items():
+        for view_id, events in view_events.items():
+            events = sorted(events)
+
+            start_ts = 0
+            duration = 0
+            max_perc_view = 0
+
+            for e in events:
+                if e[1] == "post_view_start":
+                    start_ts = e[0]
+                elif e[1] == "post_view_end":
+                    duration += e[0] - start_ts
+                    max_perc_view = max(e[2], max_perc_view)
+
+                    start_ts = 0
+            
+            if duration >= 0.8 and max_perc_view >= 0.8:
+                print(session_id, view_id, True)
+            else:
+                print(session_id, view_id, False)
+
+stream = [
+    ["s1", 1000, 9600, "post_view_start", None],
+    ["s1", 1000, 9620, "post_view_end", 0.7],
+    ["s1", 1001, 9700, "post_view_start", None],
+    ["s1", 1001, 9702, "post_view_end", 0.8],
+    ["s1", 1001, 9730, "post_view_start", None],
+    ["s1", 1001, 9734, "post_view_end", 0.8],
+    ["s1", "session_end"]
+]
+for record in stream:
+    store(record)
+
+show(data)
+-- %% MD | unnamed
+session_log
+
+session_id, step, ts
+101, 1, 10
+101, 2, 20
+102, 1, 30
+101, 2, 45
+101, 3, 50
+102, 2, 60
+101, 4, 65
+102, 3, 70
+
+calculate the avg time spent in each step
+a session can have multiple steps, in this case take the earliest timestamp
+-- %% SQL_RAW | unnamed
+-- what should we do about the final step?
+-- session_id, step, start_ts, end_ts
+
+create or replace table session_log as
+from 'onsite/streaming/session_log.csv';
+
+with session_min as (
+    select session_id, step, min(ts) as ts
+    from session_log
+    group by session_id, step   
+)
+, interm as (
+    select session_id, step, ts as start_ts, lead(ts) over(partition by session_id order by step) as end_ts
+    from session_min  
+)
+select step, sum(end_ts - start_ts) / count(distinct session_id) as avg_time
+from interm
+where end_ts is not null
+group by step
+order by step
+
+-- %% PYTHON | unnamed
+"""
+data = session_id -> step_id -> min(ts)
+session_id -> [(step_id, ts)]
+loop through and calc time spent
+"""
+
+data = {}
+
+def store(record):
+    session_id = record[0]
+    step = record[1]
+    ts = record[2]
+
+    if session_id not in data:
+        data[session_id] = {}
+
+    if step not in data[session_id]:
+        data[session_id][step] = ts
+    else:
+        data[session_id][step] = min(ts, data[session_id][step])
+
+def show(data):
+    step_info = {}
+    for session_id, step_event in data.items():
+        for step, ts in step_event.items():
+
+            if step + 1 in step_event:
+                time_took = step_event[step + 1] - ts
+                
+                if step not in step_info:
+                    step_info[step] = {"time_took": 0, "sessions": set()}
+
+                step_info[step]["time_took"] += time_took
+                step_info[step]["sessions"].add(session_id)
+    
+    for step, info in step_info.items():
+        print(step, info["time_took"] / len(info["sessions"]))
+
+
+stream = [
+    [101, 1, 10],
+    [101, 2, 20],
+    [102, 1, 30],
+    [101, 2, 45],
+    [101, 3, 50],
+    [102, 2, 60],
+    [101, 4, 65],
+    [102, 3, 70]
+]
+
+for record in stream:
+    store(record)
+show(data)
+-- %% PYTHON | unnamed
+print(data)

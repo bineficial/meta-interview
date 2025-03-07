@@ -74,7 +74,7 @@ from 'onsite/uber/ride_rider_bridge.csv';
 
 -- calculate the average wait time
 select sum(end_time - start_time) / count(*)
-from ride_fact
+from fact_ride
 -- %% SQL_RAW | unnamed
 -- how to calcualte how many drivers have spent more than total four hours with passengers
 

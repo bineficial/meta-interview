@@ -48,5 +48,3 @@ for table_info in schema:
 
 print("\nunion all\n".join(all_stmts))
 
--- %% PYTHON | unnamed
-

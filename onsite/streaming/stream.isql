@@ -167,8 +167,8 @@ order by step
 -- %% PYTHON | unnamed
 """
 data = session_id -> step_id -> min(ts)
-session_id -> [(step_id, ts)]
-loop through and calc time spent
+
+step_info = {time_took: 10, sessions: set()}
 """
 
 data = {}
@@ -218,5 +218,3 @@ stream = [
 for record in stream:
     store(record)
 show(data)
--- %% PYTHON | unnamed
-print(data)

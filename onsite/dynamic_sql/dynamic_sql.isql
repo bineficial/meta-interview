@@ -1,0 +1,52 @@
+-- %% SQL_RAW | unnamed
+create or replace table country_tbl as
+from 'onsite/dynamic_sql/country_tbl.csv';
+
+create or replace table platform_tbl as
+from 'onsite/dynamic_sql/platform_tbl.csv';
+
+select date, 'country' as dim_name, country as dim_value, 'app_opens' as metric_name, app_opens
+from country_tbl
+
+union all
+
+select date, 'country' as dim_name, country as dim_value, 'msg_sends' as metric_name, msg_sends
+from country_tbl
+
+union all
+
+select date, 'platform' as dim_name, platform as dim_value, 'app_opens' as metric_name, app_opens
+from platform_tbl
+-- %% PYTHON | unnamed
+schema = [
+    {
+        "dim_name": "country",
+        "metric_name": ["app_opens", "msg_sends"],
+        "table_name": "country_tbl",
+        "generic_columns": ["date"]
+    },
+    {
+        "dim_name": "platform",
+        "metric_name": ["app_opens"],
+        "table_name": "platform_tbl",
+        "generic_columns": ["date"]
+    }
+]
+
+all_stmts = []
+for table_info in schema:
+    generic_columns = ", ".join(table_info["generic_columns"])
+    table_name = table_info["table_name"]
+    dim_name = table_info["dim_name"]
+
+    for metric_name in table_info["metric_name"]:
+        select_stmt = (
+            f"select {generic_columns}, '{dim_name}' as dim_name, {dim_name} as dim_value, '{metric_name}' as metric_name, {metric_name}"
+            f"\nfrom {table_name}"
+        )
+        all_stmts.append(select_stmt)
+
+print("\nunion all\n".join(all_stmts))
+
+-- %% PYTHON | unnamed
+

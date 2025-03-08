@@ -1,0 +1,102 @@
+-- %% MD | unnamed
+books (
+    book_id pk
+    title
+    author_id fk
+    publication_date
+    category
+    price
+)
+
+authors (
+    author_id pk
+    first_name
+    last_name
+    birthday
+    website_url
+)
+
+transations (
+    transaction_id pk
+    book_id fk
+    customer_id fk
+    payment_amount
+    book_count
+    tax_rate
+    discount_rate
+    transaction_date
+    payment_type
+)
+
+customers (
+    customer_id pk
+    first_name
+    last_name
+    registration_date
+    interested_in_categories
+    in_rewards_member
+    invited_by_customer_id fk
+)
+-- %% SQL_RAW | unnamed
+create or replace table books as
+from 'screening/book_store/books.csv';
+
+create or replace table authors as
+from 'screening/book_store/authors.csv';
+
+create or replace table transactions as
+from 'screening/book_store/transactions.csv';
+
+-- create or replace table customers as
+-- from 'screening/book_store/customers.csv';
+-- %% SQL_RAW | unnamed
+/*
+What was the total value of sales and the number of unique paying customers,
+grouped and sorted in descending order by payment type?
+*/
+
+select 
+    payment_type,
+    sum(payment_amount) as total_sales,
+    count(distinct customer_id) as unique_paying_customers
+from transactions
+group by payment_type
+-- %% SQL_RAW | unnamed
+/*
+Existing customers can invite other people to sign up to the bookstore.
+
+Find the IDs of the top 5 customers, ordered by the average payment per book
+made by the people they inivited.
+*/
+
+select invited_by_customer_id, sum(payment_amount) / sum(book_count) as avg_per_book
+from customers
+join transactions
+    on transactions.customer_id = customer_id
+group by invited_by_customer_id
+order by 2
+limit 5
+-- %% SQL_RAW | unnamed
+/*
+Find the total number of authors.
+What percentage of them have a website URL that contains ".com", and
+what percentage never made a sale?
+*/
+
+with base as (
+    select
+        authors.author_id,
+        max(case when website_url like '%.com%' then 'Y' else 'N' end) as has_dot_come,
+        count(transactions.transaction_id) as sale_count
+    from authors
+    left join books
+        on books.author_id = authors.author_id
+    left join transactions
+        on transactions.book_id = books.book_id
+    group by authors.author_id
+)
+select
+    count(author_id),
+    sum(case when has_dot_come = 'Y' then 1 else 0 end) / count(author_id),
+    sum(case when sale_count = 0 then 1 else 0 end) / count(author_id)
+from base

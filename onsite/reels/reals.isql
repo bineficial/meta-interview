@@ -21,5 +21,3 @@ from (
     group by post_id, date   
 )
 where posted_today = 'Y' and likes_count = 0
--- %% SQL_RAW | unnamed
-
